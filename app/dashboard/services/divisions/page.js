@@ -1,17 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
 import axios from "../../../utils/axios";
-import Dropdown from "@/app/components/Dropdown"
+import Swal from 'sweetalert2'
+
+import Dropdown from "@/app/dashboard/components/Dropdown"
 export default function Divisions() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectAll, setSelectAll] = useState(false);
-  const handleSelectAll = () => {
-    setSelectAll(!selectAll);
-  };
 
-  useEffect(() => {
-    setLoading(true);
+  const tableActionButtons = [
+    { name: "action1" }
+  ]
+
+  const getDivisions = () => {
     axios
       .get("/divisions/pagination")
       .then((response) => {
@@ -22,12 +23,87 @@ export default function Divisions() {
       .catch((error) => {
         console.error();
       });
+  }
+
+  useEffect(() => {
+    setLoading(true);
+    getDivisions()
   }, []);
+
+  const handleActionOneEvent = (data) => {
+    console.log('Data received from child:', data);
+    // Process the data as needed
+  };
+
+  // State to manage checked rows
+  const [checkedRows, setCheckedRows] = useState([]);
+
+  // State to manage the global checkbox
+  const [isAllChecked, setIsAllChecked] = useState(false);
+
+  // Effect to handle changes in checkedRows
+  useEffect(() => {
+    setIsAllChecked(checkedRows.length === list.length);
+  }, [checkedRows, list.length]);
+
+  // Handle individual row checkbox changes
+  const handleRowCheckChange = (id) => {
+    setCheckedRows((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((itemId) => itemId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  // Handle global checkbox change
+  const handleGlobalCheckChange = () => {
+    if (isAllChecked) {
+      setCheckedRows([]);
+    } else {
+      setCheckedRows(list.map((item) => item.id));
+    }
+    setIsAllChecked(!isAllChecked);
+  };
+
+  const handleBulkDelete = () => {
+    Swal.fire({
+      title: "Supprimer les division selectionnée",
+      showCancelButton: true,
+      confirmButtonText: "Supprimer",
+      confirmButtonColor: "red",
+      cancelButtonText: "Annulée",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        axios
+          .delete("/divisions/many", {
+            data: { ids: checkedRows }
+          })
+          .then((response) => {
+            getDivisions()
+            Swal.fire("Operation avec success", "", "success");
+          })
+          .catch((error) => {
+            Swal.fire("Server error!", "", "error");
+            console.error();
+          });
+      }
+    });
+  }
 
   return (
     <div className="p-6 bg-white rounded-[10px]">
-      <div className="relative">
-        <Dropdown/>
+      <div className="flex justify-between items-center">
+        <div>{checkedRows}</div>
+        <div className="flex items-center gap-3 ">
+          <button
+            className="text-sm text-red-500 font-medium border border-red-500 rounded-md py-2 px-4"
+            onClick={() => handleBulkDelete()}>
+            Supprimer ({checkedRows.length})
+          </button>
+          <a className="btn-default" href="/dashboard/services/divisions/create">Créer une divison</a>
+        </div>
       </div>
       <table className="w-full text-left ">
         <thead className="">
@@ -35,11 +111,11 @@ export default function Divisions() {
             <th className="py-4">
               <input
                 type="checkbox"
-                checked={selectAll}
-                onChange={handleSelectAll}
+                checked={isAllChecked}
+                onChange={handleGlobalCheckChange}
               ></input>
             </th>
-            <th className="py-4">Division administratives {selectAll}</th>
+            <th className="py-4">Division administratives</th>
             <th className="py-4">Utilisateur</th>
             <th className="py-4">Date de création</th>
             <th className="py-4">Statut</th>
@@ -50,7 +126,9 @@ export default function Divisions() {
           {list.map((item) => (
             <tr key={item.name}>
               <td className="py-2">
-                <input type="checkbox"></input>
+                <input type="checkbox"
+                  checked={checkedRows.includes(item.id)}
+                  onChange={() => handleRowCheckChange(item.id)} />
               </td>
               <td className="py-2">
                 {" "}
@@ -62,7 +140,7 @@ export default function Divisions() {
               </td>
               <td className="py-2">
                 {" "}
-                <p>{item.createdAt}</p>{" "}
+                <p>{new Date(item.createdAt).toLocaleDateString("fr-fr", { year: "numeric", month: "numeric", day: "numeric", })}</p>{" "}
               </td>
               <td className="py-2">
                 {" "}
@@ -76,11 +154,18 @@ export default function Divisions() {
                   </span>
                 )}{" "}
               </td>
-              <td className="py-2"> actions </td>
+              <td className="py-2">
+                <div className="relative">
+                  <Dropdown title="Action" buttons={tableActionButtons} onChildEvent={handleActionOneEvent} />
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      {/* <div>Selected IDs: {JSON.stringify(checkedRows)}</div> */}
     </div>
   );
 }
+// 1763454346436529
+// yahyaoui idir
