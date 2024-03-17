@@ -1,37 +1,37 @@
 "use client";
 import { useState, useEffect } from "react";
 import axios from "../../../utils/axios";
-import Swal from 'sweetalert2'
+import Swal from "sweetalert2";
 
-import Dropdown from "@/app/dashboard/components/Dropdown"
+import Dropdown from "@/app/dashboard/components/Dropdown";
+import { faSearch } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 export default function Divisions() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState("");
 
-  const tableActionButtons = [
-    { name: "action1" }
-  ]
+  const tableActionButtons = [{ name: "action1" }];
 
   const getDivisions = () => {
     axios
       .get("/divisions/pagination")
       .then((response) => {
-        console.log(response.data.data.list);
         setList(response.data.data.list);
         setLoading(false);
       })
       .catch((error) => {
         console.error();
       });
-  }
+  };
 
   useEffect(() => {
     setLoading(true);
-    getDivisions()
+    getDivisions();
   }, []);
 
   const handleActionOneEvent = (data) => {
-    console.log('Data received from child:', data);
+    console.log("Data received from child:", data);
     // Process the data as needed
   };
 
@@ -78,10 +78,10 @@ export default function Divisions() {
       if (result.isConfirmed) {
         axios
           .delete("/divisions/many", {
-            data: { ids: checkedRows }
+            data: { ids: checkedRows },
           })
           .then((response) => {
-            getDivisions()
+            getDivisions();
             Swal.fire("Operation avec success", "", "success");
           })
           .catch((error) => {
@@ -90,19 +90,65 @@ export default function Divisions() {
           });
       }
     });
-  }
+  };
+
+  const handleSearchInputChange = (event) => {
+    setQuery(event.target.value);
+  };
+
+  const handleKeyPress = (event) => {
+    if (event.key === "Enter") {
+      performSearch();
+    }
+  };
+
+  const performSearch = () => {
+    if (query) {
+      axios
+        .get(`divisions?name=${query}`)
+        .then((response) => {
+          console.log(response);
+          setList(response.data.data.list);
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error("Error fetching search results:", error);
+        });
+    }
+  };
 
   return (
     <div className="p-6 bg-white rounded-[10px]">
       <div className="flex justify-between items-center">
-        <div>{checkedRows}</div>
+        <div className="relative  bg-[#F7F8F8]  ">
+          <div className="absolute left-0 inset-y-0 flex justify-center items-center ml-2">
+            <FontAwesomeIcon
+              icon={faSearch}
+              className="text-12 text-[#349F8B]"
+            />
+          </div>
+          <input
+            type="text"
+            className="bg-[#F7F8F8] text-sm  pl-7 p-3 rounded-md"
+            placeholder="Recherchez nos services par nom ou par mots-clés"
+            value={query}
+            onChange={handleSearchInputChange}
+            onKeyPress={handleKeyPress}
+          />
+        </div>
         <div className="flex items-center gap-3 ">
           <button
             className="text-sm text-red-500 font-medium border border-red-500 rounded-md py-2 px-4"
-            onClick={() => handleBulkDelete()}>
+            onClick={() => handleBulkDelete()}
+          >
             Supprimer ({checkedRows.length})
           </button>
-          <a className="btn-default" href="/dashboard/services/divisions/create">Créer une divison</a>
+          <a
+            className="btn-default"
+            href="/dashboard/services/divisions/create"
+          >
+            Créer une divison
+          </a>
         </div>
       </div>
       <table className="w-full text-left ">
@@ -126,9 +172,11 @@ export default function Divisions() {
           {list.map((item) => (
             <tr key={item.name}>
               <td className="py-2">
-                <input type="checkbox"
+                <input
+                  type="checkbox"
                   checked={checkedRows.includes(item.id)}
-                  onChange={() => handleRowCheckChange(item.id)} />
+                  onChange={() => handleRowCheckChange(item.id)}
+                />
               </td>
               <td className="py-2">
                 {" "}
@@ -140,7 +188,13 @@ export default function Divisions() {
               </td>
               <td className="py-2">
                 {" "}
-                <p>{new Date(item.createdAt).toLocaleDateString("fr-fr", { year: "numeric", month: "numeric", day: "numeric", })}</p>{" "}
+                <p>
+                  {new Date(item.createdAt).toLocaleDateString("fr-fr", {
+                    year: "numeric",
+                    month: "numeric",
+                    day: "numeric",
+                  })}
+                </p>{" "}
               </td>
               <td className="py-2">
                 {" "}
@@ -156,7 +210,11 @@ export default function Divisions() {
               </td>
               <td className="py-2">
                 <div className="relative">
-                  <Dropdown title="Action" buttons={tableActionButtons} onChildEvent={handleActionOneEvent} />
+                  <Dropdown
+                    title="Action"
+                    buttons={tableActionButtons}
+                    onChildEvent={handleActionOneEvent}
+                  />
                 </div>
               </td>
             </tr>
